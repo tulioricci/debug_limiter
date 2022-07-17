@@ -163,10 +163,6 @@ def positivity_preserving_limiter(dcoll: DiscretizationCollection, volume, field
     # Most importantly, without this, the limiter doesn't work <smile face>..
     cell_avgs = actx.np.where(actx.np.greater(cell_avgs,0.0), cell_avgs, 0.0)
 
-    nodes = actx.thaw(dcoll.nodes())
-
-    cell_center = op.elementwise_sum(dcoll, nodes)/3
-
     # Compute nodal and elementwise max/mins of the field
     mmin_i = op.elementwise_min(dcoll, field)
 
