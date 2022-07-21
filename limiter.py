@@ -147,6 +147,40 @@ def drop_order(dcoll: DiscretizationCollection, volume, field):
 #    return theta*(field - cell_avgs) + cell_avgs
 
       
+#def positivity_preserving_limiter(dcoll: DiscretizationCollection, volume, field):
+#    """Implement the positivity-preserving limiter of Liu and Osher (1996).
+#    """
+
+#    actx = field.array_context
+
+#    # Compute cell averages of the state
+#    cell_avgs = 1.0/volume*op.elementwise_integral(dcoll, field)
+
+#    # This will not make the limiter conservative but it is better than having
+#    # negative species. This should only be necessary for coarse grids or
+#    # underresolved regions... If it is knowingly underresolved, then I think we can
+#    # abstain to ensure "exact" conservation.
+#    # Most importantly, without this, the limiter doesn't work <smile face>..
+#    cell_avgs = actx.np.where(actx.np.greater(cell_avgs,0.0), cell_avgs, 0.0)
+#    cell_avgs = actx.np.where(actx.np.greater(cell_avgs,1.0), 1.0, cell_avgs)
+
+#    # Compute nodal and elementwise max/mins of the field
+#    mmin_i = op.elementwise_min(dcoll, field)
+#    mmax_i = op.elementwise_max(dcoll, field)
+
+#    mmin = 0.0
+#    mmax = 1.0
+#    
+#    _theta = actx.np.minimum( 
+#                 1., actx.np.minimum((mmin-cell_avgs)/(mmin_i-cell_avgs-1e-13),
+#                                     (mmax-cell_avgs)/(mmax_i-cell_avgs+1e-13))
+#             )
+##    _theta = actx.np.minimum( 
+##                 1., (mmin-cell_avgs)/(mmin_i-cell_avgs-1e-13)
+##             )
+
+#    return _theta*(field - cell_avgs) + cell_avgs
+
 def positivity_preserving_limiter(dcoll: DiscretizationCollection, volume, field):
     """Implement the positivity-preserving limiter of Liu and Osher (1996).
     """
@@ -162,12 +196,34 @@ def positivity_preserving_limiter(dcoll: DiscretizationCollection, volume, field
     # abstain to ensure "exact" conservation.
     # Most importantly, without this, the limiter doesn't work <smile face>..
     cell_avgs = actx.np.where(actx.np.greater(cell_avgs,0.0), cell_avgs, 0.0)
+    cell_avgs = actx.np.where(actx.np.greater(cell_avgs,1.0), 1.0, cell_avgs)
 
     # Compute nodal and elementwise max/mins of the field
     mmin_i = op.elementwise_min(dcoll, field)
+    mmax_i = op.elementwise_max(dcoll, field)
 
+    # Minimum and maximum physical values
     mmin = 0.0
-    
-    _theta = actx.np.minimum(1., (mmin-cell_avgs)/(mmin_i-cell_avgs-1e-13) )
+    mmax = 1.0
+
+    _theta = actx.np.minimum(1.0,
+                 actx.np.minimum(
+                     actx.np.where(actx.np.less(mmin_i, 0.0),
+                                   0.0,
+                                   (mmin-cell_avgs-1e-13)/(mmin_i-cell_avgs-1e-13)),
+                     actx.np.where(actx.np.greater(mmax_i, 1.0),
+                                   1.0,
+                                   (mmax-cell_avgs+1e-13)/(mmax_i-cell_avgs+1e-13))
+                 )
+             )
+
+#    _theta = actx.np.minimum( 
+#                 1., actx.np.minimum((mmin-cell_avgs)/(mmin_i-cell_avgs-1e-13),
+#                                     (mmax-cell_avgs)/(mmax_i-cell_avgs+1e-13))
+#             )
+
+#    _theta = actx.np.minimum( 
+#                 1., (mmin-cell_avgs)/(mmin_i-cell_avgs-1e-13)
+#             )
 
     return _theta*(field - cell_avgs) + cell_avgs
