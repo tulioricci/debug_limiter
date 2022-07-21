@@ -209,13 +209,14 @@ def positivity_preserving_limiter(dcoll: DiscretizationCollection, volume, field
     _theta = actx.np.minimum(1.0,
                  actx.np.minimum(
                      actx.np.where(actx.np.less(mmin_i, 0.0),
-                                   0.0,
-                                   (mmin-cell_avgs-1e-13)/(mmin_i-cell_avgs-1e-13)),
+                                   (mmin-cell_avgs-1e-13)/(mmin_i-cell_avgs-1e-13),
+                                   1.0),
                      actx.np.where(actx.np.greater(mmax_i, 1.0),
-                                   1.0,
-                                   (mmax-cell_avgs+1e-13)/(mmax_i-cell_avgs+1e-13))
+                                   (mmax-cell_avgs+1e-13)/(mmax_i-cell_avgs+1e-13),
+                                   1.0)
                  )
              )
+
 
 #    _theta = actx.np.minimum( 
 #                 1., actx.np.minimum((mmin-cell_avgs)/(mmin_i-cell_avgs-1e-13),
